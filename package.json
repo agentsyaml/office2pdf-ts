@@ -1,0 +1,46 @@
+{
+  "name": "office2pdf-ts",
+  "version": "0.1.0",
+  "description": "Node-first TypeScript bindings for office2pdf via Rust/WASM.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "private": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "office2pdf": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./cli": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run clean && npm run wasm:build && tsc -p tsconfig.build.json && npm run wasm:copy",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "wasm:build": "(command -v wasm-pack >/dev/null 2>&1 && wasm-pack build rust --target nodejs --out-dir ../wasm/pkg --release) || npx --yes wasm-pack build rust --target nodejs --out-dir ../wasm/pkg --release",
+    "wasm:copy": "node -e \"const fs=require('node:fs'); fs.mkdirSync('dist/wasm',{recursive:true}); for (const file of ['office2pdf_wasm.js','office2pdf_wasm_bg.wasm','office2pdf_wasm.d.ts','office2pdf_wasm_bg.wasm.d.ts']) fs.copyFileSync('wasm/pkg/'+file, 'dist/wasm/'+file)\"",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run typecheck && npm run test && npm run format:check"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

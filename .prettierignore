@@ -1,0 +1,5 @@
+.omo/
+dist/
+coverage/
+wasm/pkg/
+rust/target/
