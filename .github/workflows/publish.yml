@@ -56,4 +56,4 @@ jobs:
         run: npm pack --dry-run
 
       - name: Publish package
-        run: npm publish
+        run: npm publish --access public

@@ -1,4 +1,4 @@
-# office2pdf-ts
+# @alexsun-top/office2pdf
 
 Node-first TypeScript binding for [`office2pdf = "0.6"`](https://docs.rs/office2pdf/0.6.0/office2pdf/) via a generated WebAssembly bridge.
 
@@ -9,7 +9,7 @@ Node-first TypeScript binding for [`office2pdf = "0.6"`](https://docs.rs/office2
 ## Install
 
 ```bash
-npm install office2pdf-ts
+npm install @alexsun-top/office2pdf
 ```
 
 ## Usage
@@ -21,7 +21,7 @@ import {
   inferFormat,
   __version__,
   Format,
-} from "office2pdf-ts";
+} from "@alexsun-top/office2pdf";
 import { writeFile } from "node:fs/promises";
 
 // infer extension before conversion
@@ -111,17 +111,28 @@ GitHub Actions runs package checks on every branch push and pull request. The
 publish workflow runs only when a version tag matching `v*.*.*` is pushed, for
 example `v0.1.0`.
 
+The npm package name is `@alexsun-top/office2pdf`. For the first manual public
+publish of this scoped package, run the same local checks and publish with
+explicit public access:
+
+```bash
+npm ci
+npm run check
+npm run build
+npm publish --access public
+```
+
 The publish workflow is designed for npm Trusted Publishing with GitHub Actions
 OIDC. To enable automatic npm authentication without long-lived tokens:
 
 1. Open the package settings on npmjs.com.
-2. Add a trusted publisher for this GitHub repository.
+2. Add a trusted publisher for `agentsyaml/office2pdf-ts`.
 3. Set the trusted workflow file to `.github/workflows/publish.yml`.
-4. Allow the workflow to run `npm publish`.
+4. Allow the workflow to run `npm publish --access public`.
 
 The workflow grants `id-token: write`, so npm can exchange the GitHub OIDC token
-during `npm publish`. No `NPM_TOKEN` secret is required for this path, and no
-generated `dist/` or `wasm/pkg/` files need to be committed.
+during `npm publish --access public`. No `NPM_TOKEN` secret is required for this
+path, and no generated `dist/` or `wasm/pkg/` files need to be committed.
 
 If Trusted Publishing is unavailable, create an npm automation token, store it
 as the GitHub Actions secret `NPM_TOKEN`, configure `actions/setup-node` with
