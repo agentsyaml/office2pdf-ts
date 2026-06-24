@@ -4,6 +4,10 @@
   "description": "Node-first TypeScript bindings for office2pdf via Rust/WASM.",
   "type": "module",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agentsyaml/office2pdf-ts"
+  },
   "private": false,
   "engines": {
     "node": ">=18"
