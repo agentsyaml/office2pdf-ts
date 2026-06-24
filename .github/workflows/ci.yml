@@ -49,5 +49,8 @@ jobs:
       - name: Build package
         run: npm run build
 
+      - name: Smoke test installed package
+        run: npm run smoke:installed
+
       - name: Verify npm package contents
         run: npm pack --dry-run

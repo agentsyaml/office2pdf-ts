@@ -16,9 +16,10 @@ const ERROR_MEMORY_LIMIT_UNSUPPORTED: &str =
 struct JsConvertOptions {
     #[serde(alias = "pageRange")]
     page_range: Option<String>,
+    #[serde(alias = "sheetNames")]
     #[serde(alias = "sheetFilter")]
     #[serde(alias = "sheet_filter")]
-    sheet_filter: Option<Vec<String>>, // maps to upstream `sheet_names`
+    sheet_names: Option<Vec<String>>,
     #[serde(alias = "slideRange")]
     slide_range: Option<String>,
     #[serde(alias = "paperSize")]
@@ -33,7 +34,12 @@ struct JsConvertOptions {
     include_warnings: Option<bool>,
     #[serde(alias = "memoryLimitMb")]
     memory_limit_mb: Option<u64>,
+    tagged: Option<bool>,
+    #[serde(alias = "pdfUa")]
+    pdf_ua: Option<bool>,
     streaming: Option<bool>,
+    #[serde(alias = "streamingChunkSize")]
+    streaming_chunk_size: Option<usize>,
 }
 
 struct ConversionMetrics {
@@ -101,7 +107,7 @@ fn parse_sheet_names(raw_names: Option<Vec<String>>) -> Result<Option<Vec<String
     raw_names
         .map(|names| {
             if names.iter().any(|name| name.trim().is_empty()) {
-                Err(JsError::new("sheet_filter entries must not be empty"))
+                Err(JsError::new("sheet_names entries must not be empty"))
             } else {
                 Ok(names)
             }
@@ -110,7 +116,7 @@ fn parse_sheet_names(raw_names: Option<Vec<String>>) -> Result<Option<Vec<String
 }
 
 fn build_native_options(options: &JsConvertOptions) -> Result<ConvertOptions, JsError> {
-    let sheet_names = parse_sheet_names(options.sheet_filter.clone())?;
+    let sheet_names = parse_sheet_names(options.sheet_names.clone())?;
     let slide_range = match options.slide_range.as_deref() {
         None => None,
         Some(range) => Some(
@@ -145,10 +151,10 @@ fn build_native_options(options: &JsConvertOptions) -> Result<ConvertOptions, Js
         paper_size,
         font_paths,
         landscape: options.landscape,
-        tagged: false,
-        pdf_ua: false,
+        tagged: options.tagged.unwrap_or(false),
+        pdf_ua: options.pdf_ua.unwrap_or(false),
         streaming: options.streaming.unwrap_or(false),
-        streaming_chunk_size: None,
+        streaming_chunk_size: options.streaming_chunk_size,
     })
 }
 

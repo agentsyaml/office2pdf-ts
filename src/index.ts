@@ -1,9 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { extname } from "node:path";
-import { getNativeConverter, type NativeConvertOptions } from "./native.js";
+import { getNativeConverter } from "./native.js";
+import { normalizeOptions, type ConvertOptions } from "./options.js";
 
-export const __version__ = "0.1.0" as const;
+export type { ConvertOptions } from "./options.js";
+
+export const __version__ = "0.1.1" as const;
 
 export type Format = "docx" | "pptx" | "xlsx";
 
@@ -15,27 +18,6 @@ export const Format = {
   pptx: "pptx",
   xlsx: "xlsx",
 } as const;
-
-export interface ConvertOptions {
-  pageRange?: string | null;
-  page_range?: string | null;
-  sheetFilter?: string[] | null;
-  sheet_filter?: string[] | null;
-  slideRange?: string | null;
-  slide_range?: string | null;
-  paperSize?: string | null;
-  paper_size?: string | null;
-  landscape?: boolean | null;
-  fontPaths?: string[] | null;
-  font_paths?: string[] | null;
-  pdfStandard?: string | null;
-  pdf_standard?: string | null;
-  includeWarnings?: boolean;
-  include_warnings?: boolean;
-  memoryLimitMb?: number | null;
-  memory_limit_mb?: number | null;
-  streaming?: boolean;
-}
 
 export interface ConversionMetrics {
   parseDurationMs: number;
@@ -56,8 +38,6 @@ export interface ConversionResult {
 type ByteLike = Uint8Array | ArrayBuffer | Buffer;
 type UnknownPathLike = string | URL;
 
-const SUPPORTED_FORMATS = new Set<Format>(["docx", "pptx", "xlsx"]);
-
 function isByteLike(data: unknown): data is ByteLike {
   return data instanceof Uint8Array || data instanceof ArrayBuffer;
 }
@@ -70,32 +50,19 @@ function coerceBytes(data: ByteLike): Uint8Array {
   return data;
 }
 
-function resolveAlias<T>(
-  camelValue: T | undefined,
-  snakeValue: T | undefined,
-  field: string,
-): T | undefined {
-  if (
-    camelValue !== undefined &&
-    snakeValue !== undefined &&
-    camelValue !== snakeValue
-  ) {
-    throw new TypeError(
-      `${field} is ambiguous; provide either camelCase or snake_case, not both`,
-    );
-  }
-
-  return camelValue ?? snakeValue;
-}
-
 function normalizeFormat(value: Format | string): Format {
   const normalized = String(value).trim().replace(/^\./, "").toLowerCase();
 
-  if (!SUPPORTED_FORMATS.has(normalized as Format)) {
-    throw new Error("format must be one of: docx, pptx, xlsx");
+  switch (normalized) {
+    case Format.docx:
+      return Format.docx;
+    case Format.pptx:
+      return Format.pptx;
+    case Format.xlsx:
+      return Format.xlsx;
+    default:
+      throw new Error("format must be one of: docx, pptx, xlsx");
   }
-
-  return normalized as Format;
 }
 
 function normalizePathLike(path: UnknownPathLike): string {
@@ -104,100 +71,10 @@ function normalizePathLike(path: UnknownPathLike): string {
   }
 
   if (path instanceof URL) {
-    if (path.protocol === "file:") {
-      return fileURLToPath(path);
-    }
-
-    return path.pathname;
+    return path.protocol === "file:" ? fileURLToPath(path) : path.pathname;
   }
 
   throw new TypeError("path must be a string or URL-like path");
-}
-
-function normalizeOptionStringArray(
-  value: string[] | null | undefined,
-  fieldName: string,
-): string[] | null | undefined {
-  if (value === undefined || value === null) {
-    return value;
-  }
-
-  if (
-    !Array.isArray(value) ||
-    !value.every((entry) => typeof entry === "string")
-  ) {
-    throw new TypeError(`${fieldName} must be an array of strings`);
-  }
-
-  return value;
-}
-
-function normalizeOptions(options: ConvertOptions = {}): NativeConvertOptions {
-  const pageRange = resolveAlias(
-    options.pageRange,
-    options.page_range,
-    "pageRange/page_range",
-  );
-  if (pageRange !== undefined && pageRange !== null) {
-    throw new Error("page_range is not supported by upstream office2pdf 0.6");
-  }
-
-  const memoryLimitMb = resolveAlias(
-    options.memoryLimitMb,
-    options.memory_limit_mb,
-    "memoryLimitMb/memory_limit_mb",
-  );
-  if (memoryLimitMb !== undefined && memoryLimitMb !== null) {
-    throw new Error(
-      "memory_limit_mb is not supported by upstream office2pdf 0.6",
-    );
-  }
-
-  const sheetFilter = normalizeOptionStringArray(
-    resolveAlias(
-      options.sheetFilter,
-      options.sheet_filter,
-      "sheetFilter/sheet_filter",
-    ),
-    "sheetFilter",
-  );
-  const slideRange = resolveAlias(
-    options.slideRange,
-    options.slide_range,
-    "slideRange/slide_range",
-  );
-  const paperSize = resolveAlias(
-    options.paperSize,
-    options.paper_size,
-    "paperSize/paper_size",
-  );
-  const fontPaths = normalizeOptionStringArray(
-    resolveAlias(options.fontPaths, options.font_paths, "fontPaths/font_paths"),
-    "fontPaths",
-  );
-  const pdfStandard = resolveAlias(
-    options.pdfStandard,
-    options.pdf_standard,
-    "pdfStandard/pdf_standard",
-  );
-  const landscape = resolveAlias(options.landscape, undefined, "landscape");
-  const includeWarnings = resolveAlias(
-    options.includeWarnings,
-    options.include_warnings,
-    "includeWarnings",
-  );
-  const streaming = options.streaming;
-
-  return {
-    sheet_filter: sheetFilter ?? null,
-    slide_range: slideRange ?? null,
-    paper_size: paperSize ?? null,
-    landscape: landscape ?? null,
-    font_paths: fontPaths ?? [],
-    pdf_standard: pdfStandard ?? null,
-    include_warnings: includeWarnings === undefined ? true : includeWarnings,
-    streaming: streaming ?? false,
-  };
 }
 
 export function inferFormat(path: UnknownPathLike): Format {
@@ -267,6 +144,25 @@ export async function convertPath(
   const bytes = await readFile(pathString);
 
   return convertBytes(bytes, inputFormat, options);
+}
+
+export async function convertToPdf(
+  data: unknown,
+  format: Format | string,
+): Promise<Uint8Array> {
+  return (await convertBytes(data, format)).pdf;
+}
+
+export async function convertDocxToPdf(data: unknown): Promise<Uint8Array> {
+  return convertToPdf(data, Format.docx);
+}
+
+export async function convertPptxToPdf(data: unknown): Promise<Uint8Array> {
+  return convertToPdf(data, Format.pptx);
+}
+
+export async function convertXlsxToPdf(data: unknown): Promise<Uint8Array> {
+  return convertToPdf(data, Format.xlsx);
 }
 
 export { Format as Formats };

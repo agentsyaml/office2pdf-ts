@@ -17,7 +17,9 @@ npm install @alexsun-top/office2pdf
 ```ts
 import {
   convertBytes,
+  convertDocxToPdf,
   convertPath,
+  convertToPdf,
   inferFormat,
   __version__,
   Format,
@@ -39,6 +41,10 @@ const { pdf, warnings, metrics } = await convertBytes(input, Format.DOCX, {
   includeWarnings: true,
   paperSize: "A4",
 });
+
+// upstream-compatible JS/WASM helper style: returns PDF bytes only
+const helperPdf = await convertDocxToPdf(input);
+const genericPdf = await convertToPdf(input, "docx");
 ```
 
 ### API
@@ -48,15 +54,30 @@ const { pdf, warnings, metrics } = await convertBytes(input, Format.DOCX, {
 - `inferFormat(pathOrUrl: string | URL): "docx" | "pptx" | "xlsx"`
 - `convertBytes(data, format, options?)`
 - `convertPath(pathOrUrl, options?)`
+- `convertToPdf(data, format)` -> `Promise<Uint8Array>`
+- `convertDocxToPdf(data)` -> `Promise<Uint8Array>`
+- `convertPptxToPdf(data)` -> `Promise<Uint8Array>`
+- `convertXlsxToPdf(data)` -> `Promise<Uint8Array>`
 
 `ConvertOptions` accepts both camelCase and snake_case aliases:
 
-- `sheetFilter` / `sheet_filter`
+- `sheetNames` / `sheet_names`
+- `sheetFilter` / `sheet_filter` compatibility alias for `sheet_names`
 - `slideRange` / `slide_range`
 - `paperSize` / `paper_size`
 - `fontPaths` / `font_paths`
 - `pdfStandard` / `pdf_standard`
 - `includeWarnings` / `include_warnings`
+- `pdfUa` / `pdf_ua`
+- `streamingChunkSize` / `streaming_chunk_size`
+
+It also accepts upstream boolean options `tagged` and `streaming`.
+
+Rust-native upstream APIs map to this Node package as follows:
+
+- `office2pdf::convert(path)` and `convert_with_options(path, options)` correspond to `convertPath(path, options?)`.
+- `office2pdf::convert_bytes(data, format, options)` corresponds to `convertBytes(data, format, options?)`.
+- `render_document` is not exposed because this package does not expose the upstream IR document model.
 
 Unsupported by upstream `office2pdf 0.6`:
 
@@ -68,6 +89,7 @@ Unsupported by upstream `office2pdf 0.6`:
 #### Result shape
 
 ```ts
+{
   pdf: Uint8Array;
   warnings: string[];
   metrics: null | {
@@ -89,7 +111,16 @@ Build exports a `office2pdf` command:
 ```bash
 office2pdf --help
 office2pdf --version
+office2pdf input.docx output.pdf
+office2pdf input.docx -o output.pdf
+office2pdf input.xlsx --outdir ./pdfs
+office2pdf --paper A4 --landscape --pdf-a input.docx output.pdf
+office2pdf --sheets Sheet1,Sheet2 input.xlsx output.pdf
+office2pdf --slides 1-3 input.pptx output.pdf
+office2pdf --font-path /path/font-a.ttf --font-path /path/font-b.ttf input.docx output.pdf
 ```
+
+Supported flags: `-o` / `--output`, `--outdir`, `--paper`, `--landscape`, `--pdf-a`, `--sheets`, `--slides`, and repeatable or comma-separated `--font-path`.
 
 ## Scripts
 
@@ -103,7 +134,7 @@ office2pdf --version
 
 - Rust crate: `rust/`
 - TypeScript entrypoints: `src/index.ts`, `src/cli.ts`, `src/native.ts`
-- Tests: `tests/index.test.ts`
+- Tests: `tests/index.test.ts`, `tests/cli.test.ts`, `tests/real-conversion.test.ts`
 
 ## Release
 
@@ -121,6 +152,9 @@ npm run check
 npm run build
 npm publish --access public
 ```
+
+Do not create or push a release tag until the target npm version, exact tag name,
+remote push target, and publish path have been explicitly approved.
 
 The publish workflow is designed for npm Trusted Publishing with GitHub Actions
 OIDC. To enable automatic npm authentication without long-lived tokens:
