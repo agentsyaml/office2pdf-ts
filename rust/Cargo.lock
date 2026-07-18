@@ -1987,9 +1987,9 @@ dependencies = [
 
 [[package]]
 name = "office2pdf"
-version = "0.6.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12886aab6e556d82ec7057b8b25aa75266613fcf5f3d084805cb735715d08b4c"
+checksum = "371584a2651ec85bc071f5b2efff3011d26006c613b8c3b9d6268bfc5a4fca1a"
 dependencies = [
  "comemo",
  "docx-rs",
