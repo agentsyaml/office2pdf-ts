@@ -1,6 +1,6 @@
 # @alexsun-top/office2pdf
 
-Node-first TypeScript binding for [`office2pdf = "0.6"`](https://docs.rs/office2pdf/0.6.0/office2pdf/) via a generated WebAssembly bridge.
+Node-first TypeScript binding for [`office2pdf = "0.6.2"`](https://docs.rs/office2pdf/0.6.2/office2pdf/) via a generated WebAssembly bridge.
 
 - No LibreOffice service
 - No Chromium/Docker/browser-only wrappers
@@ -79,12 +79,12 @@ Rust-native upstream APIs map to this Node package as follows:
 - `office2pdf::convert_bytes(data, format, options)` corresponds to `convertBytes(data, format, options?)`.
 - `render_document` is not exposed because this package does not expose the upstream IR document model.
 
-Unsupported by upstream `office2pdf 0.6`:
+Unsupported by upstream `office2pdf 0.6.2`:
 
 - `pageRange` / `page_range` -> throws
-  - `page_range is not supported by upstream office2pdf 0.6`
+  - `page_range` remains unsupported in upstream `office2pdf 0.6.2`
 - `memoryLimitMb` / `memory_limit_mb` -> throws
-  - `memory_limit_mb is not supported by upstream office2pdf 0.6`
+  - `memory_limit_mb` remains unsupported in upstream `office2pdf 0.6.2`
 
 #### Result shape
 
