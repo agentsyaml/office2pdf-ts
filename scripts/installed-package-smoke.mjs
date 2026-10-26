@@ -199,7 +199,11 @@ async function main() {
       cwd: repositoryRoot,
     }),
   );
-  const packageTarball = join(repositoryRoot, packResult[0].filename);
+  // npm 12 keys the report by package name; npm 11 and older return an array.
+  const packEntry = Array.isArray(packResult)
+    ? packResult[0]
+    : Object.values(packResult)[0];
+  const packageTarball = join(repositoryRoot, packEntry.filename);
 
   const workspace = await mkdtemp(
     join(tmpdir(), "office2pdf-installed-smoke-"),
