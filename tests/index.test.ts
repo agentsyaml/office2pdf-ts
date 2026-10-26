@@ -50,7 +50,7 @@ afterEach(() => {
 
 describe("public API", () => {
   it("exports __version__ and format enum", () => {
-    expect(__version__).toBe("0.1.1");
+    expect(__version__).toBe("0.2.0");
     expect(Format.DOCX).toBe("docx");
     expect(Format.PPTX).toBe("pptx");
     expect(Format.XLSX).toBe("xlsx");
@@ -80,13 +80,13 @@ describe("public API", () => {
     ).rejects.toThrow("format must be one of: docx, pptx, xlsx");
     await expect(
       convertBytes(new Uint8Array([1, 2]), Format.docx, { pageRange: "1-2" }),
-    ).rejects.toThrow("page_range is not supported by upstream office2pdf 0.6");
+    ).rejects.toThrow("page_range is not supported by upstream office2pdf 0.9");
     await expect(
       convertBytes(new Uint8Array([1, 2]), Format.docx, {
         memory_limit_mb: 1024,
       }),
     ).rejects.toThrow(
-      "memory_limit_mb is not supported by upstream office2pdf 0.6",
+      "memory_limit_mb is not supported by upstream office2pdf 0.9",
     );
   });
 
@@ -171,6 +171,74 @@ describe("public API", () => {
         streaming_chunk_size: 2048,
       }),
     );
+  });
+
+  it("normalizes office2pdf 0.9 options", async () => {
+    await convertBytes(new Uint8Array([1, 2]), Format.xlsx, {
+      xlsxUiScript: "latin",
+      include_hidden_slides: true,
+      lastResortFontFamily: "Noto Sans SC",
+    });
+
+    expect(nativeMock).toHaveBeenCalledWith(
+      expect.any(Uint8Array),
+      Format.xlsx,
+      expect.objectContaining({
+        xlsx_ui_script: "latin",
+        include_hidden_slides: true,
+        last_resort_font_family: "Noto Sans SC",
+      }),
+    );
+  });
+
+  it("defaults office2pdf 0.9 options when omitted", async () => {
+    await convertBytes(new Uint8Array([1, 2]), Format.xlsx);
+
+    expect(nativeMock).toHaveBeenCalledWith(
+      expect.any(Uint8Array),
+      Format.xlsx,
+      expect.objectContaining({
+        xlsx_ui_script: null,
+        include_hidden_slides: null,
+        last_resort_font_family: null,
+      }),
+    );
+  });
+
+  it.each([
+    [
+      "rejects an unknown xlsxUiScript",
+      { xlsxUiScript: "cyrillic" as "latin" },
+      'xlsxUiScript must be "hangul" or "latin"',
+    ],
+    [
+      "rejects a blank lastResortFontFamily",
+      { lastResortFontFamily: "   " },
+      "lastResortFontFamily must be a non-empty string",
+    ],
+    [
+      "rejects conflicting xlsxUiScript aliases",
+      { xlsxUiScript: "latin" as const, xlsx_ui_script: "hangul" as const },
+      "xlsxUiScript/xlsx_ui_script is ambiguous; provide either camelCase or snake_case, not both",
+    ],
+    [
+      "rejects conflicting includeHiddenSlides aliases",
+      { includeHiddenSlides: true, include_hidden_slides: false },
+      "includeHiddenSlides/include_hidden_slides is ambiguous; provide either camelCase or snake_case, not both",
+    ],
+    [
+      "rejects conflicting lastResortFontFamily aliases",
+      {
+        lastResortFontFamily: "Noto Sans SC",
+        last_resort_font_family: "Noto Sans JP",
+      },
+      "lastResortFontFamily/last_resort_font_family is ambiguous; provide either camelCase or snake_case, not both",
+    ],
+  ])("%s", async (_, options, message) => {
+    await expect(
+      convertBytes(new Uint8Array([1, 2]), Format.docx, options),
+    ).rejects.toThrow(message);
+    expect(nativeMock).not.toHaveBeenCalled();
   });
 
   it.each([

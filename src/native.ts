@@ -4,12 +4,15 @@ import type { ConversionResult } from "./index.js";
 
 export interface NativeConvertOptions {
   sheet_names: string[] | null;
+  xlsx_ui_script: "hangul" | "latin" | null;
   slide_range: string | null;
+  include_hidden_slides: boolean | null;
   paper_size: string | null;
   landscape: boolean | null;
   tagged: boolean | null;
   pdf_ua: boolean | null;
   font_paths: string[];
+  last_resort_font_family: string | null;
   pdf_standard: string | null;
   include_warnings: boolean;
   streaming_chunk_size: number | null;

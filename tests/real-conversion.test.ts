@@ -69,6 +69,8 @@ describe("real conversion", () => {
       pdfUa: false,
       streaming: true,
       streamingChunkSize: 1024,
+      xlsxUiScript: "latin",
+      lastResortFontFamily: "Helvetica",
     });
 
     expectPdf(result.pdf);

@@ -1,15 +1,17 @@
 use std::path::PathBuf;
 
 use js_sys::{Array, Object, Reflect, Uint8Array};
-use office2pdf::config::{ConvertOptions, Format, PaperSize, PdfStandard, SlideRange};
+use office2pdf::config::{
+    ConvertOptions, Format, PaperSize, PdfStandard, SlideRange, XlsxUiScript,
+};
 use office2pdf::{convert_bytes as upstream_convert_bytes, error::ConvertWarning};
 use serde::Deserialize;
 use serde_wasm_bindgen::from_value;
 use wasm_bindgen::prelude::*;
 
-const ERROR_PAGE_RANGE_UNSUPPORTED: &str = "page_range is not supported by upstream office2pdf 0.6";
+const ERROR_PAGE_RANGE_UNSUPPORTED: &str = "page_range is not supported by upstream office2pdf 0.9";
 const ERROR_MEMORY_LIMIT_UNSUPPORTED: &str =
-    "memory_limit_mb is not supported by upstream office2pdf 0.6";
+    "memory_limit_mb is not supported by upstream office2pdf 0.9";
 
 #[derive(Default, Deserialize)]
 #[serde(default)]
@@ -20,14 +22,20 @@ struct JsConvertOptions {
     #[serde(alias = "sheetFilter")]
     #[serde(alias = "sheet_filter")]
     sheet_names: Option<Vec<String>>,
+    #[serde(alias = "xlsxUiScript")]
+    xlsx_ui_script: Option<String>,
     #[serde(alias = "slideRange")]
     slide_range: Option<String>,
+    #[serde(alias = "includeHiddenSlides")]
+    include_hidden_slides: Option<bool>,
     #[serde(alias = "paperSize")]
     paper_size: Option<String>,
     landscape: Option<bool>,
     #[serde(alias = "fontPaths")]
     #[serde(alias = "font_paths")]
     font_paths: Vec<String>,
+    #[serde(alias = "lastResortFontFamily")]
+    last_resort_font_family: Option<String>,
     #[serde(alias = "pdfStandard")]
     pdf_standard: Option<String>,
     #[serde(alias = "includeWarnings")]
@@ -144,12 +152,22 @@ fn build_native_options(options: &JsConvertOptions) -> Result<ConvertOptions, Js
         .map(PathBuf::from)
         .collect::<Vec<_>>();
 
+    let xlsx_ui_script = match options.xlsx_ui_script.as_deref() {
+        None => XlsxUiScript::default(),
+        Some(value) => XlsxUiScript::parse(value)
+            .map_err(|error| JsError::new(format!("invalid xlsx_ui_script: {error}").as_ref()))?,
+    };
+
     Ok(ConvertOptions {
         sheet_names,
+        xlsx_ui_script,
         slide_range,
+        include_hidden_slides: options.include_hidden_slides.unwrap_or(false),
         pdf_standard,
         paper_size,
         font_paths,
+        font_bytes: Vec::new(),
+        last_resort_font_family: options.last_resort_font_family.clone(),
         landscape: options.landscape,
         tagged: options.tagged.unwrap_or(false),
         pdf_ua: options.pdf_ua.unwrap_or(false),

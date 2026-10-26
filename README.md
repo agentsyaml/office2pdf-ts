@@ -1,6 +1,6 @@
 # @alexsun-top/office2pdf
 
-Node-first TypeScript binding for [`office2pdf = "0.6.2"`](https://docs.rs/office2pdf/0.6.2/office2pdf/) via a generated WebAssembly bridge.
+Node-first TypeScript binding for [`office2pdf = "0.9.1"`](https://docs.rs/office2pdf/0.9.1/office2pdf/) via a generated WebAssembly bridge.
 
 - No LibreOffice service
 - No Chromium/Docker/browser-only wrappers
@@ -63,9 +63,12 @@ const genericPdf = await convertToPdf(input, "docx");
 
 - `sheetNames` / `sheet_names`
 - `sheetFilter` / `sheet_filter` compatibility alias for `sheet_names`
+- `xlsxUiScript` / `xlsx_ui_script` -> `"hangul"` (default) or `"latin"`; picks the Excel UI script whose theme face a scheme font resolves to
 - `slideRange` / `slide_range`
+- `includeHiddenSlides` / `include_hidden_slides` -> also convert PPTX slides marked hidden (default `false`)
 - `paperSize` / `paper_size`
 - `fontPaths` / `font_paths`
+- `lastResortFontFamily` / `last_resort_font_family` -> appended as the final candidate in every generated font chain
 - `pdfStandard` / `pdf_standard`
 - `includeWarnings` / `include_warnings`
 - `pdfUa` / `pdf_ua`
@@ -73,18 +76,20 @@ const genericPdf = await convertToPdf(input, "docx");
 
 It also accepts upstream boolean options `tagged` and `streaming`.
 
+In-memory font bytes (`font_bytes` upstream) are not exposed; register fonts with `fontPaths` / `font_paths` instead.
+
 Rust-native upstream APIs map to this Node package as follows:
 
 - `office2pdf::convert(path)` and `convert_with_options(path, options)` correspond to `convertPath(path, options?)`.
 - `office2pdf::convert_bytes(data, format, options)` corresponds to `convertBytes(data, format, options?)`.
 - `render_document` is not exposed because this package does not expose the upstream IR document model.
 
-Unsupported by upstream `office2pdf 0.6.2`:
+Unsupported by upstream `office2pdf 0.9.1`:
 
 - `pageRange` / `page_range` -> throws
-  - `page_range` remains unsupported in upstream `office2pdf 0.6.2`
+  - `page_range` remains unsupported in upstream `office2pdf 0.9.1`
 - `memoryLimitMb` / `memory_limit_mb` -> throws
-  - `memory_limit_mb` remains unsupported in upstream `office2pdf 0.6.2`
+  - `memory_limit_mb` remains unsupported in upstream `office2pdf 0.9.1`
 
 #### Result shape
 

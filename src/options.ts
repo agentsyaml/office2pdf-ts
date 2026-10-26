@@ -7,8 +7,12 @@ export interface ConvertOptions {
   sheet_names?: string[] | null;
   sheetFilter?: string[] | null;
   sheet_filter?: string[] | null;
+  xlsxUiScript?: "hangul" | "latin" | null;
+  xlsx_ui_script?: "hangul" | "latin" | null;
   slideRange?: string | null;
   slide_range?: string | null;
+  includeHiddenSlides?: boolean | null;
+  include_hidden_slides?: boolean | null;
   paperSize?: string | null;
   paper_size?: string | null;
   landscape?: boolean | null;
@@ -17,6 +21,8 @@ export interface ConvertOptions {
   pdf_ua?: boolean | null;
   fontPaths?: string[] | null;
   font_paths?: string[] | null;
+  lastResortFontFamily?: string | null;
+  last_resort_font_family?: string | null;
   pdfStandard?: string | null;
   pdf_standard?: string | null;
   includeWarnings?: boolean;
@@ -91,6 +97,37 @@ function normalizeOptionStringArray(
   return value;
 }
 
+function normalizeNonEmptyString(
+  value: string | null | undefined,
+  fieldName: string,
+): string | null | undefined {
+  if (value === undefined || value === null) {
+    return value;
+  }
+
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new TypeError(`${fieldName} must be a non-empty string`);
+  }
+
+  return value;
+}
+
+function normalizeXlsxUiScript(
+  value: string | null | undefined,
+  fieldName: string,
+): "hangul" | "latin" | null | undefined {
+  if (value === undefined || value === null) {
+    return value;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (normalized !== "hangul" && normalized !== "latin") {
+    throw new TypeError(`${fieldName} must be "hangul" or "latin"`);
+  }
+
+  return normalized;
+}
+
 export function normalizeOptions(
   options: ConvertOptions = {},
 ): NativeConvertOptions {
@@ -100,7 +137,7 @@ export function normalizeOptions(
     "pageRange/page_range",
   );
   if (pageRange !== undefined && pageRange !== null) {
-    throw new Error("page_range is not supported by upstream office2pdf 0.6");
+    throw new Error("page_range is not supported by upstream office2pdf 0.9");
   }
 
   const memoryLimitMb = resolveAlias(
@@ -110,7 +147,7 @@ export function normalizeOptions(
   );
   if (memoryLimitMb !== undefined && memoryLimitMb !== null) {
     throw new Error(
-      "memory_limit_mb is not supported by upstream office2pdf 0.6",
+      "memory_limit_mb is not supported by upstream office2pdf 0.9",
     );
   }
 
@@ -143,6 +180,16 @@ export function normalizeOptions(
     options.slide_range,
     "slideRange/slide_range",
   );
+  const xlsxUiScript = resolveAlias(
+    normalizeXlsxUiScript(options.xlsxUiScript, "xlsxUiScript"),
+    normalizeXlsxUiScript(options.xlsx_ui_script, "xlsx_ui_script"),
+    "xlsxUiScript/xlsx_ui_script",
+  );
+  const includeHiddenSlides = resolveAlias(
+    options.includeHiddenSlides,
+    options.include_hidden_slides,
+    "includeHiddenSlides/include_hidden_slides",
+  );
   const paperSize = resolveAlias(
     options.paperSize,
     options.paper_size,
@@ -170,6 +217,17 @@ export function normalizeOptions(
     );
   }
   const fontPaths = hasOfficialFontPaths ? officialFontPaths : compatFontPaths;
+  const lastResortFontFamily = resolveAlias(
+    normalizeNonEmptyString(
+      options.lastResortFontFamily,
+      "lastResortFontFamily",
+    ),
+    normalizeNonEmptyString(
+      options.last_resort_font_family,
+      "last_resort_font_family",
+    ),
+    "lastResortFontFamily/last_resort_font_family",
+  );
   const pdfStandard = resolveAlias(
     options.pdfStandard,
     options.pdf_standard,
@@ -197,12 +255,15 @@ export function normalizeOptions(
 
   return {
     sheet_names: sheetNames ?? null,
+    xlsx_ui_script: xlsxUiScript ?? null,
     slide_range: slideRange ?? null,
+    include_hidden_slides: includeHiddenSlides ?? null,
     paper_size: paperSize ?? null,
     landscape: landscape ?? null,
     tagged: tagged ?? null,
     pdf_ua: pdfUa ?? null,
     font_paths: fontPaths ?? [],
+    last_resort_font_family: lastResortFontFamily ?? null,
     pdf_standard: pdfStandard ?? null,
     include_warnings: includeWarnings === undefined ? true : includeWarnings,
     streaming_chunk_size: streamingChunkSize ?? null,
