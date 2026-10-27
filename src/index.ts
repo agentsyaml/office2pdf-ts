@@ -6,7 +6,7 @@ import { normalizeOptions, type ConvertOptions } from "./options.js";
 
 export type { ConvertOptions } from "./options.js";
 
-export const __version__ = "0.2.0" as const;
+export const __version__ = "0.2.1" as const;
 
 export type Format = "docx" | "pptx" | "xlsx";
 

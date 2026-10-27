@@ -50,7 +50,7 @@ afterEach(() => {
 
 describe("public API", () => {
   it("exports __version__ and format enum", () => {
-    expect(__version__).toBe("0.2.0");
+    expect(__version__).toBe("0.2.1");
     expect(Format.DOCX).toBe("docx");
     expect(Format.PPTX).toBe("pptx");
     expect(Format.XLSX).toBe("xlsx");
